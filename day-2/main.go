@@ -30,7 +30,6 @@ func main() {
 
 func getRibbon(l, w, h int) int {
 	arr := smallestInOrder(l, w, h)
-	fmt.Println(arr)
 	wrap := arr[0] * 2 + arr[1] * 2
 	bow := l * w * h
 	return wrap + bow
