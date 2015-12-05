@@ -20,12 +20,9 @@ func main() {
 		hasher.Write([]byte(input))
 		hash := hex.EncodeToString(hasher.Sum(nil))
 
-		fmt.Printf("%s, %d, %s", input, number, hash)
-		fmt.Println()
-
-		// fmt.Println(hash)
-		if isFiveZeroes(hash) {
-			fmt.Println(hash)
+		if hasXZeroes(hash, 6) {
+			fmt.Printf("%s, %d, %s", input, number, hash)
+			fmt.Println()
 			break
 		}
 
@@ -34,8 +31,8 @@ func main() {
 	}
 }
 
-func isFiveZeroes(hash string) bool {
-	for i := 0; i < 5; i++ {
+func hasXZeroes(hash string, num int) bool {
+	for i := 0; i < num; i++ {
 		if string(hash[i]) != "0" {
 			return false;
 		}
