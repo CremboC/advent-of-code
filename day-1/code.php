@@ -14,6 +14,10 @@ for ($i = 0; $i < strlen($contents); $i++) {
 	} else if ($ch == ')') {
 		$down++;
 	}
+
+	if ($up - $down == -1) {
+		echo "Went to basement at {$i}\n";
+	}
 }
 
 echo $up - $down;
