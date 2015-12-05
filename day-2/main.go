@@ -6,6 +6,7 @@ import (
 	"strings"
 	"strconv"
 	"math"
+	"sort"
 )
 
 func main() {
@@ -13,17 +14,26 @@ func main() {
 	data := string(dat)
 
 	boxes := strings.Split(data, "\n")
-	var totalArea int
+	var totalArea, totalRibbon int
 
 	for _, dims := range boxes {
 		l, w, h := getDimensions(dims)
 		current := getArea(l, w, h) + smallest(l * w, w * h, h * l)
-		fmt.Printf("%d, %d, %d .. %d", l, w, h, current)
-		fmt.Println()
-		totalArea = totalArea + current
+
+		totalRibbon += getRibbon(l, w, h)
+		totalArea += current
 	}
 
-	fmt.Println(totalArea)
+	fmt.Printf("Total area: %d\n", totalArea)
+	fmt.Printf("Total ribbon: %d\n", totalRibbon)
+}
+
+func getRibbon(l, w, h int) int {
+	arr := smallestInOrder(l, w, h)
+	fmt.Println(arr)
+	wrap := arr[0] * 2 + arr[1] * 2
+	bow := l * w * h
+	return wrap + bow
 }
 
 func getArea(l, w, h int) int {
@@ -40,4 +50,10 @@ func getDimensions(dims string) (l, w, h int) {
 
 func smallest(l, w, h int) int {
 	return int(math.Min(float64(l), math.Min(float64(w), float64(h))))
+}
+
+func smallestInOrder(l, w, h int) []int {
+	arr := []int{l, w, h}
+	sort.Ints(arr)
+	return arr
 }
