@@ -1,3 +1,4 @@
-lc LSHIFT 1 -> lw
-lw OR lv -> lx
-lx -> a
+a AND b -> c
+5 -> a
+6 -> b
+b -> d
