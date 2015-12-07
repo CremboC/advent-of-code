@@ -1,0 +1,3 @@
+lc LSHIFT 1 -> lw
+lw OR lv -> lx
+lx -> a
