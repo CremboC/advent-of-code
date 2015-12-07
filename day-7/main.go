@@ -28,15 +28,25 @@ func main() {
 
 	for _, cmd := range cmds {
 		op1, op2, operator, target := decon(cmd)
-		val, _ := operations[target]
-		operations[target] = append(val, Op{op1, op2, operator, target})
+		operations[target] = append(operations[target], Op{op1, op2, operator, target})
 	}
 
+	// first star
+	calculate("a")
+	fmt.Printf("Register a: %d\n", registers["a"])
+
+	// second star
+	for key := range registers {
+		delete(registers, key)
+	}
+	for _, cmd := range cmds {
+		op1, op2, operator, target := decon(cmd)
+		operations[target] = append(operations[target], Op{op1, op2, operator, target})
+	}
+	put(Op{op1: "956", target: "b"})
 	calculate("a")
 
-	// fmt.Println(registers)
-	fmt.Printf("Register a: %d", registers["a"])
-	fmt.Println()
+	fmt.Printf("Register a: %d\n", registers["a"])
 }
 
 func calculate(target string) {
@@ -54,11 +64,11 @@ func calculate(target string) {
 	case "RSHIFT": rshift(o)
 	case "OR": or(o)
 	case "AND": and(o)
-	default: def(o)
+	default: put(o)
 	}
 }
 
-func def(o Op) {
+func put(o Op) {
 	var lval uint16
 	var lok bool
 
