@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-const times = 50
+const times = 75
 
 func main() {
 	input := []byte{1, 1, 1, 3, 2, 2, 2, 1, 1, 3}
