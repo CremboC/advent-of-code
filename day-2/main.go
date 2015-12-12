@@ -11,9 +11,7 @@ import (
 
 func main() {
     dat, _ := ioutil.ReadFile("input.data")
-	data := string(dat)
-
-	boxes := strings.Split(data, "\n")
+	boxes := strings.Split(string(dat), "\n")
 	var totalArea, totalRibbon int
 
 	for _, dims := range boxes {
@@ -29,30 +27,25 @@ func main() {
 }
 
 func getRibbon(l, w, h int) int {
-	arr := smallestInOrder(l, w, h)
-	wrap := arr[0] * 2 + arr[1] * 2
-	bow := l * w * h
-	return wrap + bow
+	arr := []int{l, w, h}
+	sort.Ints(arr)
+	return (arr[0] * 2 + arr[1] * 2) + (l * w * h) // wrap + bow
 }
 
 func getArea(l, w, h int) int {
 	return (2 * l * w) + (2 * w * h) + (2 * h * l);
 }
 
-func getDimensions(dims string) (l, w, h int) {
+func getDimensions(dims string) (int, int, int) {
 	split := strings.Split(dims, "x")
-	l, _ = strconv.Atoi(split[0])
-	w, _ = strconv.Atoi(split[1])
-	h, _ = strconv.Atoi(split[2])
-	return
+	return atoi(split[0]), atoi(split[1]), atoi(split[2])
+}
+
+func atoi(str string) int {
+	i, _ := strconv.Atoi(str)
+	return i
 }
 
 func smallest(l, w, h int) int {
 	return int(math.Min(float64(l), math.Min(float64(w), float64(h))))
-}
-
-func smallestInOrder(l, w, h int) []int {
-	arr := []int{l, w, h}
-	sort.Ints(arr)
-	return arr
 }
