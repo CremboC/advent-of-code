@@ -59,10 +59,10 @@ func calculate(target string) {
 	}
 
 	switch o.operator {
-	case "NOT": not(o)
-	case "LSHIFT": lshift(o)
-	case "RSHIFT": rshift(o)
-	case "OR": or(o)
+	case "NOT": registers[o.target] = ^ifOk(o.op1)
+	case "LSHIFT": registers[o.target] = ifOk(o.op1) << parseInt(o.op2)
+	case "RSHIFT": registers[o.target] = ifOk(o.op1) >> parseInt(o.op2)
+	case "OR": registers[o.target] = ifOk(o.op1) | ifOk(o.op2)
 	case "AND": and(o)
 	default: put(o)
 	}
@@ -87,33 +87,6 @@ func put(o Op) {
 	registers[o.target] = lval
 }
 
-func not(o Op) {
-	val, ok := registers[o.op1]
-	if !ok {
-		calculate(o.op1)
-		val = registers[o.op1]
-	}
-	registers[o.target] = ^val
-}
-
-func lshift(o Op) {
-	val, ok := registers[o.op1]
-	if !ok {
-		calculate(o.op1)
-		val = registers[o.op1]
-	}
-	registers[o.target] = val << parseInt(o.op2)
-}
-
-func rshift(o Op) {
-	val, ok := registers[o.op1]
-	if !ok {
-		calculate(o.op1)
-		val = registers[o.op1]
-	}
-	registers[o.target] = val >> parseInt(o.op2)
-}
-
 func and(o Op) {
 	var lval uint16
 	var lok bool
@@ -125,41 +98,20 @@ func and(o Op) {
 	} else {
 		lval, lok = registers[o.op1]
 	}
-	rval, rok := registers[o.op2]
 
 	if !lok {
 		calculate(o.op1)
 		lval = registers[o.op1]
 	}
 
-	if !rok {
-		calculate(o.op2)
-		rval = registers[o.op2]
-	}
-
-	registers[o.target] = lval & rval
+	registers[o.target] = lval & ifOk(o.op2)
 }
 
-func or(o Op) {
-	lval, lok := registers[o.op1]
-	rval, rok := registers[o.op2]
-
-	if !lok {
-		calculate(o.op1)
-		lval = registers[o.op1]
+func ifOk(op string) uint16 {
+	if _, ok := registers[op]; !ok {
+		calculate(op)
 	}
-
-	if !rok {
-		calculate(o.op2)
-		rval = registers[o.op2]
-	}
-
-	registers[o.target] = lval | rval
-}
-
-func split(left, operator string) (string, string) {
-	sp := strings.Split(left, " "+operator+" ")
-	return sp[0], sp[1]
+	return registers[op]
 }
 
 func decon(cmd string) (op1, op2, operator, target string) {
@@ -175,13 +127,7 @@ func decon(cmd string) (op1, op2, operator, target string) {
 	switch operator {
 	case "NOT":
 		op1 = left[1]
-	case "LSHIFT":
-		fallthrough
-	case "RSHIFT":
-		fallthrough
-	case "OR":
-		fallthrough
-	case "AND":
+	case "AND", "LSHIFT", "RSHIFT", "OR":
 		op1, op2 = left[0], left[2]
 	default:
 		op1 = left[0]
