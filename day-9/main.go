@@ -6,6 +6,7 @@ import (
 	// "math/rand"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/fighterlyt/permutation"
 )
@@ -19,9 +20,12 @@ type Route struct {
 	cost int
 }
 
+var wg sync.WaitGroup
 var places = make(map[string]bool)
 var edgeMap = make(map[string]*Edge)
 var routes []Route
+
+var rc = make(chan Route, 1000)
 
 func main() {
 	contents, err := ioutil.ReadFile("input.data")
@@ -53,32 +57,19 @@ func main() {
 
 	p, _ := permutation.NewPerm(cities, nil)
 
-	for i, err := p.Next(); err == nil; i, err = p.Next() {
-		ii, _ := i.([]string)
-		route := Route{}
-		for j := 1; j < len(ii); j++ {
-			from, to := ii[j - 1], ii[j]
-
-			val, ok := edgeMap[from+to]
-			if !ok {
-				val, ok = edgeMap[to+from]
-			}
-
-			if !ok {
-				route.path = append(route.path, to)
-				routes = append(routes, route)
-				break
-			} else {
-				route.cost += val.distance
-				route.path = append(route.path, from)
-			}
-
-			if j == len(ii) - 1 {
-				route.path = append(route.path, to)
-				routes = append(routes, route)
-			}
+	go func() {
+		for v := range rc {
+			routes = append(routes, v)
 		}
+	}()
+
+	n := p.Left() / 4
+	for i := 1; i < 5; i++ {
+		wg.Add(1)
+		go next(p, n * i)
 	}
+
+	wg.Wait()
 
 	minDistance, maxDistance := 100000, 0
 	for _, r := range routes {
@@ -96,6 +87,39 @@ func main() {
 	}
 
 	fmt.Printf("Min: %d, Max: %d\n", minDistance, maxDistance)
+}
+
+func next(p *permutation.Permutator, n int) {
+	defer wg.Done()
+	nxn := p.NextN(n).([][]string)
+	for _, ii := range nxn {
+		// ii, _ := i.([]string)
+		route := Route{}
+		for j := 1; j < len(ii); j++ {
+			from, to := ii[j - 1], ii[j]
+
+			val, ok := edgeMap[from+to]
+			if !ok {
+				val, ok = edgeMap[to+from]
+			}
+
+			if !ok {
+				route.path = append(route.path, to)
+				rc <- route
+				// routes = append(routes, route)
+				break
+			} else {
+				route.cost += val.distance
+				route.path = append(route.path, from)
+			}
+
+			if j == len(ii) - 1 {
+				route.path = append(route.path, to)
+				// routes = append(routes, route)
+				rc <- route
+			}
+		}
+	}
 }
 
 func parseInt(val string) int {
