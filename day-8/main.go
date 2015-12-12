@@ -16,7 +16,7 @@ var chars int
 var memory int
 
 // second star
-var encoded int
+var encoded, add int
 
 func main() {
 	contents, err := ioutil.ReadFile("input.data")
@@ -32,15 +32,15 @@ func main() {
 		l = mainRe.FindStringSubmatch(l)[1]
 
 		if uniRe.MatchString(l) {
-			l = findAndRemove(l, uniRe)
+			l = uniRe.ReplaceAllStringFunc(l, empty)
 		}
 
 		if quotRe.MatchString(l) {
-			l = findAndRemove(l, quotRe)
+			l = quotRe.ReplaceAllStringFunc(l, empty)
 		}
 
 		if backslashRe.MatchString(l) {
-			l = findAndRemove(l, backslashRe)
+			l = backslashRe.ReplaceAllStringFunc(l, empty)
 		}
 
 		memory += len(l)
@@ -52,15 +52,18 @@ func main() {
 		l = mainRe.FindStringSubmatch(l)[1]
 
 		if uniRe.MatchString(l) {
-			l = findAndRemoveSpecial(l, uniRe, 5)
+			add = 5
+			l = uniRe.ReplaceAllStringFunc(l, empty2)
 		}
 
 		if quotRe.MatchString(l) {
-			l = findAndRemoveSpecial(l, quotRe, 4)
+			add = 4
+			l = quotRe.ReplaceAllStringFunc(l, empty2)
 		}
 
 		if backslashRe.MatchString(l) {
-			l = findAndRemoveSpecial(l, backslashRe, 4)
+			add = 4
+			l = backslashRe.ReplaceAllStringFunc(l, empty2)
 		}
 
 		encoded += len(l) + 6 // 6 because "" -> "\"\"" and our l doesn't have the original
@@ -69,26 +72,12 @@ func main() {
 	fmt.Printf("Encoded: %d, Chars: %d, Answer ✩2: %d\n", encoded, chars, encoded-chars)
 }
 
-func findAndRemoveSpecial(l string, re *regexp.Regexp, add int) string {
-	matches := re.FindAllStringSubmatchIndex(l, -1)
-	f, t := matches[0][0], matches[0][1]
-	encoded += add
-
-	if len(matches) > 1 {
-		return findAndRemoveSpecial(l[0:f]+l[t:len(l)], re, add)
-	}
-
-	return l[0:f] + l[t:len(l)]
+func empty(match string) string {
+	memory++
+	return ""
 }
 
-func findAndRemove(l string, re *regexp.Regexp) string {
-	matches := re.FindAllStringSubmatchIndex(l, -1)
-	f, t := matches[0][0], matches[0][1]
-	memory++
-
-	if len(matches) > 1 {
-		return findAndRemove(l[0:f]+l[t:len(l)], re)
-	}
-
-	return l[0:f] + l[t:len(l)]
+func empty2(match string) string {
+	encoded += add
+	return ""
 }
