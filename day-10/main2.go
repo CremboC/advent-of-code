@@ -11,7 +11,7 @@ func main() {
 	var t byte
 
 	for i := 0; i < times; i++ {
-		n = make([]byte, 0)
+		n = make([]byte, 0, len(input) * 2)
 		l = len(input)
 		t = 1
 		for j := 1; j < l; j++ {
