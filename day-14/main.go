@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -135,9 +134,4 @@ func calculatePoints(time int) {
 			reindeers[t.name].points++
 		}
 	}
-}
-
-func parseInt(str string) int {
-	i, _ := strconv.Atoi(str)
-	return i
 }
