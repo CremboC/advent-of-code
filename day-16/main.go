@@ -10,18 +10,45 @@ import (
 type sue struct {
 	id int
 	props map[string]int
-	proximity float32
+	proximity float64
 }
 
-func (s *sue) calculate() (proximity float32) {
+func (s *sue) calculate() (proximity float64) {
 	for prop, amount := range searchMap {
 		if val, ok := s.props[prop]; ok {
 			if val == amount {
-				proximity += float32(1) / float32(len(searchMap))
+				proximity += one / sMapLength
 			}
 			if val != amount {
-				proximity -= float32(1) / float32(len(searchMap))
+				proximity -= one / sMapLength
 			}
+		}
+	}
+	s.proximity = proximity
+	return proximity
+}
+
+func (s *sue) calculate2() (proximity float64) {
+	for prop, amount := range searchMap {
+		if val, ok := s.props[prop]; ok {
+			switch prop {
+			case "cats", "trees":
+				if val > amount {
+					proximity += one / sMapLength
+				}
+			case "goldfish", "pomeranians":
+				if val < amount {
+					proximity -= one / sMapLength
+				}
+			default:
+				if val == amount {
+					proximity += one / sMapLength
+				}
+				if val != amount {
+					proximity -= one / sMapLength
+				}
+			}
+
 		}
 	}
 	s.proximity = proximity
@@ -41,6 +68,9 @@ var searchMap = map[string]int {
 		"cars": 2,
 		"perfumes": 1,
 	}
+
+var sMapLength = float64(len(searchMap))
+var one = 1.0
 
 func main() {
 	contents, _ := ioutil.ReadFile("input.data")
@@ -63,7 +93,7 @@ func main() {
 
 	var top *sue
 	for _, s := range sues {
-		if top == nil || top.proximity < s.calculate() {
+		if top == nil || top.proximity < s.calculate2() {
 			top = s
 		}
 	}
