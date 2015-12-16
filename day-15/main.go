@@ -34,13 +34,14 @@ type Ingr struct {
 func (c *Cookie) calculate() (int, int) {
 	capacityScore, durabilityScore, flavorScore, textureScore, totalCalories := 0, 0, 0, 0, 0
 	for ingredient, amount := range c.ingredients {
+		fmt.Println(ingredient, amount)
 		capacityScore += amount * ingrs[ingredient].capacity
 		durabilityScore += amount * ingrs[ingredient].durability
 		flavorScore += amount * ingrs[ingredient].flavor
 		textureScore += amount * ingrs[ingredient].texture
-        totalCalories += amount * ingrs[ingredient].calories
+		totalCalories += amount * ingrs[ingredient].calories
 	}
-    // fmt.Println(capacityScore, durabilityScore, flavorScore, textureScore)
+	// fmt.Println(capacityScore, durabilityScore, flavorScore, textureScore)
 	c.score = floor(capacityScore) * floor(durabilityScore) * floor(flavorScore) * floor(textureScore)
 	return c.score, totalCalories
 }
@@ -101,43 +102,43 @@ func main() {
 	fmt.Println(maxFlavor.name, maxFlavor.top())
 	fmt.Println(maxTexture.name, maxTexture.top())
 
-    var maxVal, ma, mb, mc, md int
-	for a := 1; a <= 100; a++ {
-		for b := 1; b <= 100-a; b++ {
-			for c := 1; c <= 100-a; c++ {
-				for d := 1; d <= 100-a; d++ {
-					cookie := &Cookie{
-						map[string]int{
-							"Frosting":     a,
-							"Candy":        b,
-							"Butterscotch": c,
-							"Sugar":        d,
-						},
-						0,
-					}
-
-                    if a + b + c + d == 100 {
-                        val, calories := cookie.calculate()
-                        if val > maxVal && calories == 500 {
-                            maxVal = val
-                            ma, mb, mc, md = a, b, c, d
-                        }
-                    }
-				}
-			}
-		}
+	cookie := &Cookie{
+		map[string]int{
+			maxCap.name:     int(maxCap.top() * 100),
+			maxDura.name:    int(maxDura.top() * 100),
+			maxFlavor.name:  int(maxFlavor.top() * 100),
+			maxTexture.name: int(maxTexture.top() * 100),
+		},
+		0,
 	}
+	fmt.Println(cookie.calculate())
 
-    fmt.Println(maxVal, ma, mb, mc, md)
+	// var maxVal, ma, mb, mc, md int
+	// for a := 1; a <= 100; a++ {
+	// 	for b := 1; b <= 100-a; b++ {
+	// 		for c := 1; c <= 100-a; c++ {
+	// 			for d := 1; d <= 100-a; d++ {
+	// 				cookie := &Cookie{
+	// 					map[string]int{
+	// 						"Frosting":     a,
+	// 						"Candy":        b,
+	// 						"Butterscotch": c,
+	// 						"Sugar":        d,
+	// 					},
+	// 					0,
+	// 				}
 
-	// cookie := &Cookie{
-	// 	map[string]int{
-	// 		"Frosting":     25,
-	// 		"Candy":        31,
-	// 		"Butterscotch": 28,
-	// 		"Sugar":        16,
-	// 	},
-	// 	0,
+	// 				if a+b+c+d == 100 {
+	// 					val, calories := cookie.calculate()
+	// 					if val > maxVal && calories == 500 {
+	// 						maxVal = val
+	// 						ma, mb, mc, md = a, b, c, d
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
 	// }
-	// fmt.Println(cookie.calculate())
+
+	// fmt.Println(maxVal, ma, mb, mc, md)
 }
