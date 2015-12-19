@@ -16,27 +16,25 @@ object Day18 {
     s.count(_ == '#')
   }
 
-  def edge(x: Int, y: Int): Boolean = {
-    if (x == 1 && y == 1) return true
-    if (x == 1 && y == size) return true
-    if (x == size && y == 1) return true
-    if (x == size && y == size) return true
-    false
-  }
+  def edge(x: Int, y: Int): Boolean =
+    if (x == 1 && y == 1) true
+    else if (x == 1 && y == size) true
+    else if (x == size && y == 1) true
+    else if (x == size && y == size) true
+    else false
 
   def nextState(state: Array[Array[Char]]): Array[Array[Char]] = {
     val newState = state.map(_.clone)
-    state.view.zipWithIndex.foreach {
-      case (row, y) => row.view.zipWithIndex.filter(_._1 != '@').foreach {
-        case (light, x) =>
-          if (!edge(x, y)) {
-            val lightsOn = checkNeighbors(state, y, x)
-            light match {
-              case '#' if lightsOn < 2 || lightsOn > 3 => newState(y)(x) = '.'
-              case '.' if lightsOn == 3 => newState(y)(x) = '#'
-              case _ => // do nothing
-            }
-          }
+    for ((row, y) <- state.view.zipWithIndex;
+         (light, x) <- row.view.zipWithIndex
+         if light == '#' || light == '.'
+         if !edge(x, y)
+    ) {
+      val lightsOn = checkNeighbors(state, y, x)
+      light match {
+        case '#' if lightsOn < 2 || lightsOn > 3 => newState(y)(x) = '.'
+        case '.' if lightsOn == 3 => newState(y)(x) = '#'
+        case _ => // do nothing
       }
     }
     newState
