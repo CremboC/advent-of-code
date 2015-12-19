@@ -1,5 +1,6 @@
+import scala.collection._
 import scala.io.Source
-import scala.util.matching.Regex
+import scala.util.Random
 
 object Day19 {
   def main(args: Array[String]) =
@@ -25,8 +26,8 @@ object Day19 {
     val all = r.findAllMatchIn(combination).map(_.toString).toList
     val molecules = for ((subject, index) <- all.zipWithIndex; if chems.contains(subject)) yield {
       val (before, after) = (all.slice(0, index).mkString, all.slice(index + 1, all.length).mkString)
-      chems(subject) map { el =>
-        "%s%s%s".format(before, el, after)
+      chems(subject) map {
+        "%s%s%s".format(before, _, after)
       }
     }
     println(molecules.flatten.toSet.size)
@@ -34,42 +35,29 @@ object Day19 {
 
   def part2(): Unit = {
     val lines = Source.fromFile("input.data").getLines.toList
-    val start = lines.last
-    val target = "e"
-    val e = List("HF", "NAl", "OMg")
-    var m = Map.empty[String, Boolean]
 
-    val reverseChems = lines.takeWhile(!_.isEmpty).foldLeft(Map.empty[String, String]) { (map, current) =>
+    var chems = lines.takeWhile(!_.isEmpty).foldLeft(List.empty[(String, String)]) { (ls, current) =>
       val sp = current.split(" => ")
-      map + (sp.last -> sp.head)
+      (sp.last, sp.head) :: ls
     }
 
-    println(reverseChems)
-
-    val r = s"""(${reverseChems.keys.toSet.mkString("|")})""".r
-    var l = Set.empty[String]
-
-    magic(start, 1)
-
-    def mkAll(r: Regex, str: String): List[String] = r.findAllMatchIn(str).map(_.toString).toList
-
-    def magic(string: String, steps: Int): Unit = {
-      val all = mkAll(r, string)
-      if (all.length == 1) {
-        l += all.head
-        return
+    var steps = 0
+    var molecule = lines.last
+    while (true) {
+      chems = Random.shuffle(chems)
+      chems.foreach {
+        case (from, to) if molecule.contains(from) =>
+          molecule = molecule.replaceFirst(from, to)
+          steps += 1
+        case _ =>
       }
-      for ((subject, index) <- all.zipWithIndex) yield {
-        val (before, after) = (all.slice(0, index).mkString, all.slice(index + 1, all.length).mkString)
-        val strings: List[String] = subject match {
-          case "e" => for (ev <- e) yield "%s%s%s".format(before, ev, after)
-          case _ => List("%s%s%s".format(before, reverseChems(subject), after))
-        }
-
-        for (str <- strings; if !m.contains(str)) yield {
-          m += (str -> true)
-          magic(str, steps + 1)
-        }
+      // often gets stuck on this so just restart, lol
+      if (molecule == "CRnSiRnFYCaRnFArArFArAl") {
+        molecule = lines.last
+      }
+      if (molecule == "e") {
+        println(s"Steps: $steps; Run this couple of times to make sure this is the lowest")
+        sys.exit()
       }
     }
   }
