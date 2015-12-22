@@ -27,7 +27,7 @@ object Day21 {
     (80, 0, 3)
   )
 
-  def isWinner(p: Player): Boolean = simulate(p, boss, playerNow = true) match {
+  def isWinner(p: Player): Boolean = simulate(p) match {
     case _: Player => true
     case _: Boss => false
   }
@@ -60,7 +60,6 @@ object Day21 {
           val twoRingedWinners = twoRinged.filter(isWinner)
           val oneRingedAndArmoredWinners = oneRingedAndArmored.filter(isWinner)
 
-
           val combined = weaponOnlyWinner ++ armoredWinners ++ oneRingedWinners ++ twoRingedWinners ++ oneRingedAndArmoredWinners
           println(s"Winner for part one is: ${combined.minBy(_.cost)}")
 
@@ -73,15 +72,18 @@ object Day21 {
   }
 
   // turn 0 = player; turn = 1
-  def simulate(p: Player, b: Boss, playerNow: Boolean): Char = {
-    if (p.hp <= 0) b
-    else if (b.hp <= 0) p
-    else {
-      playerNow match {
-        case true => simulate(p, new Boss(b.dmg, b.defence, b.hp - math.max(p.dmg - b.defence, 1)), playerNow = false)
-        case false => simulate(new Player(p.dmg, p.defence, p.cost, p.rings, p.hp - math.max(b.dmg - p.defence, 1)), b, playerNow = true)
+  def simulate(p: Player): Char = {
+    def go(p: Player, b: Boss, playerNow: Boolean): Char = {
+      if (p.hp <= 0) b
+      else if (b.hp <= 0) p
+      else {
+        playerNow match {
+          case true => go(p, new Boss(b.dmg, b.defence, b.hp - math.max(p.dmg - b.defence, 1)), playerNow = false)
+          case false => go(new Player(p.dmg, p.defence, p.cost, p.rings, p.hp - math.max(b.dmg - p.defence, 1)), b, playerNow = true)
+        }
       }
     }
+    go(p, boss, playerNow = true)
   }
 
   trait Char

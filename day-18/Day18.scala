@@ -25,8 +25,8 @@ object Day18 {
 
   def nextState(state: Array[Array[Char]]): Array[Array[Char]] = {
     val newState = state.map(_.clone)
-    for ((row, y) <- state.view.zipWithIndex;
-         (light, x) <- row.view.zipWithIndex
+    for ((row, y) <- state.zipWithIndex;
+         (light, x) <- row.zipWithIndex
          if light == '#' || light == '.'
          if !edge(x, y)
     ) {
@@ -53,7 +53,7 @@ object Day18 {
     val contents: Array[String] = Source.fromFile("input.data").getLines.toArray
     val grid = Array.ofDim[Char](contents.length, contents.length)
 
-    for ((l, i) <- contents.view.zipWithIndex) {
+    for ((l, i) <- contents.zipWithIndex) {
       grid.update(i, l.toCharArray)
     }
 
