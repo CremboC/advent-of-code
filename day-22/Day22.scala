@@ -8,6 +8,9 @@ object Day22 {
   val bossDamage = 10
   val bossStartHp = 71
 
+//  val bossDamage = 8
+//  val bossStartHp = 13
+
   val availableSpells = Vector(
     new MagicMissile(),
     new Drain(),
@@ -16,42 +19,36 @@ object Day22 {
     new Recharge()
   )
 
-  val availableSpellsQueue = Queue(availableSpells: _*)
-
   def main(args: Array[String]) {
-
-    val set = Queue(new Shield,
-      new Recharge,
-      new Poison,
-      new Shield,
-      new MagicMissile,
-      new Recharge,
-      new Poison,
-      new MagicMissile,
-      new MagicMissile,
-      new Recharge,
-      new Poison,
-      new Drain,
-      new MagicMissile,
-      new Drain)
-    println(simulate(new Player(0, set)))
-
-//    var finished = false
-//    var combos = 0
-//    while (!finished) {
-//      val won = try {
-//        playerWon(new Player(0, generateSpellSet()))
-//      } catch {
-//        case _: Throwable => (false, -1)
-//      }
-//      combos += 1
-//      println(combos)
-//      if (won._1) {
-//        println(won)
-//        finished = true
-//      }
-//    }
+    var finished = false
+    var combos = 0
+    while (!finished) {
+      val won = try {
+        playerWon(new Player(0, generateSpellSet()))
+      } catch {
+        case _: Throwable => (false, -2)
+      }
+      combos += 1
+      println(combos)
+      if (won._1) {
+        println(won)
+        finished = true
+      }
+    }
   }
+
+  def lastThreeAreCleanFrom(s: Spell, spells: Vector[Spell]): Boolean = {
+    spells.size match {
+      case 0 => true
+      case 1 => !spells.last.equals(s)
+      case 2 => !spells.last.equals(s) && !spells(spells.length - 2).equals(s)
+      case _ => !spells.last.equals(s) && !spells(spells.length - 2).equals(s) && !spells(spells.length - 3).equals(s)
+    }
+  }
+
+  val spells = (10 to 20).toVector
+
+  def randomSpellAmount: Int = Random.shuffle(spells).head
 
   def generateSpellSet(): Queue[Spell] = {
     def nextSpell(): Spell = Random.shuffle(availableSpells).head match {
@@ -63,31 +60,30 @@ object Day22 {
     }
 
     @tailrec
-    def go(queue: Queue[Spell], cost: Int): Queue[Spell] = {
-      if (cost >= 1750) queue
+    def go(spells: Vector[Spell], cost: Int): Vector[Spell] = {
+      if (spells.size >= randomSpellAmount) spells
       else {
         var next: Spell = null
         var finished = false
         while (!finished) {
           next = nextSpell()
           finished = next match {
-            case _: Shield if queue.last.isInstanceOf[Shield] => false
-            case _: Recharge if queue.last.isInstanceOf[Recharge] => false
-            case _: Poison if queue.last.isInstanceOf[Poison] => false
+            case s: Shield if !lastThreeAreCleanFrom(s, spells) => false
+            case r: Recharge if !lastThreeAreCleanFrom(r, spells) => false
+            case p: Poison if !lastThreeAreCleanFrom(p, spells) => false
             case _ => true
           }
         }
-        go(queue :+ next, cost + next.cost)
+        go(spells :+ next, cost + next.cost)
       }
     }
 
-    val shield = new Shield
-    val set = go(Queue(shield), shield.cost)
+    val set = go(Vector(), 0)
     println(set)
-    set
+    Queue(set: _*)
   }
 
-  def playerWon(p: Player): (Boolean, Int) = simulate(p) match {
+  def playerWon(p: Player, b: Boss = new Boss): (Boolean, Int) = simulate(p, b) match {
     case (player: Player, c: Int) => (true, c)
     case (boss: Boss, _) => (false, -1)
   }
@@ -100,9 +96,9 @@ object Day22 {
       else if (p.mana < 0) (b, cost)
       else {
 //        println(s"${s.currentAttacker.getClass}'s turn; Turn $turns")
+//        println("––––––––––––––––––––––")
 //        println(s"Player has ${p.hp} hp, ${p.mana} mana, ${p.armor} armor")
 //        println(s"Boss has ${b.hp} hp")
-//        println(s"Cost is $cost")
 
         // for spells that have ended, do their end-effect
         val (aPlayer, aBoss) = s.activeSpells.filter(_._2 == 0).foldLeft((p, b)) { (carry, spell) =>
@@ -142,15 +138,13 @@ object Day22 {
             val (nextSpell, spellsLeft) = newPlayer.spells.dequeue
 
             val newState = nextSpell match {
-              case spell: Spell with Turns if !s.activeSpells.keySet.contains(spell) => new State(b, newActiveSpells + (spell -> spell.turns))
+              case spell: Spell with Turns => new State(b, newActiveSpells + (spell -> spell.turns))
               case _ => new State(b, newActiveSpells)
             }
 
-//            print(s"Player casts $nextSpell")
+//            println(s"Player casts $nextSpell")
             val (afterSpellPlayer, finalBoss) = nextSpell.fire(newPlayer, newBoss)
             val finalPlayer = new Player(afterSpellPlayer.armor, spellsLeft, afterSpellPlayer.mana, afterSpellPlayer.hp)
-
-            println(cost, nextSpell.cost)
 
             (finalPlayer, finalBoss, newState, cost + nextSpell.cost)
 
