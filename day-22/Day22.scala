@@ -8,28 +8,41 @@ object Day22 {
   val bossDamage = 10
   val bossStartHp = 71
 
-//  val bossDamage = 8
-//  val bossStartHp = 13
+  val debug = false
+  val hardMode = false
+
+//    val bossDamage = 8
+//    val bossStartHp = 14
 
   val availableSpells = Vector(
-    new MagicMissile(),
-    new Drain(),
-    new Shield(),
-    new Poison(),
-    new Recharge()
+    MagicMissile(),
+    Drain(),
+    Shield(),
+    Poison(),
+    Recharge()
   )
 
   def main(args: Array[String]) {
+
+//    val spells = Queue(Recharge(), Shield(), Drain(), Poison(), MagicMissile())
+//    val won = try playerWon(Player(0, spells, 250, 10)) catch {
+//      case _: Throwable => (false, -2)
+//    }
+//
+//    if (won._1) {
+//      println(won)
+//    }
+
     var finished = false
     var combos = 0
     while (!finished) {
       val won = try {
-        playerWon(new Player(0, generateSpellSet()))
+        playerWon(Player(0, generateSpellSet()))
       } catch {
         case _: Throwable => (false, -2)
       }
       combos += 1
-      println(combos)
+      if (debug) println(combos)
       if (won._1) {
         println(won)
         finished = true
@@ -40,24 +53,18 @@ object Day22 {
   def lastThreeAreCleanFrom(s: Spell, spells: Vector[Spell]): Boolean = {
     spells.size match {
       case 0 => true
-      case 1 => !spells.last.equals(s)
-      case 2 => !spells.last.equals(s) && !spells(spells.length - 2).equals(s)
-      case _ => !spells.last.equals(s) && !spells(spells.length - 2).equals(s) && !spells(spells.length - 3).equals(s)
+      case 1 => spells.last != s
+      case 2 => !spells.slice(spells.length - 2, spells.length).contains(s)
+      case _ => !spells.slice(spells.length - 3, spells.length).contains(s)
     }
   }
 
-  val spells = (10 to 20).toVector
+  val spells = (10 to 15).toVector
 
   def randomSpellAmount: Int = Random.shuffle(spells).head
 
   def generateSpellSet(): Queue[Spell] = {
-    def nextSpell(): Spell = Random.shuffle(availableSpells).head match {
-      case _: MagicMissile => new MagicMissile
-      case _: Drain => new Drain
-      case _: Shield => new Shield
-      case _: Poison => new Poison
-      case _: Recharge => new Recharge
-    }
+    def nextSpell(): Spell = Random.shuffle(availableSpells).head
 
     @tailrec
     def go(spells: Vector[Spell], cost: Int): Vector[Spell] = {
@@ -79,7 +86,8 @@ object Day22 {
     }
 
     val set = go(Vector(), 0)
-    println(set)
+    if (debug)
+      println(set)
     Queue(set: _*)
   }
 
@@ -91,18 +99,41 @@ object Day22 {
   def simulate(p: Player, b: Boss = new Boss): (Char, Int) = {
     @tailrec
     def go(p: Player, b: Boss, s: State, turns: Int, cost: Int): (Char, Int) = {
-      if (b.hp <= 0) (p, cost)
-      else if (p.hp <= 0) (b, cost)
-      else if (p.mana < 0) (b, cost)
+      if (b.hp <= 0) {
+        if (debug) println("Boss has died")
+        (p, cost)
+      }
+      else if (p.hp <= 0) {
+        if (debug) println("Player has died")
+        (b, cost)
+      }
+      else if (p.mana < 0) {
+        if (debug) println("Player ran out of mana")
+        (b, cost)
+      }
       else {
-//        println(s"${s.currentAttacker.getClass}'s turn; Turn $turns")
-//        println("––––––––––––––––––––––")
-//        println(s"Player has ${p.hp} hp, ${p.mana} mana, ${p.armor} armor")
-//        println(s"Boss has ${b.hp} hp")
+        if (debug) {
+          println(s"${s.currentAttacker.getClass}'s turn; Turn $turns")
+          println("––––––––––––––––––––––")
+          println(s"Player has ${p.hp} hp, ${p.armor} armor, ${p.mana} mana")
+          println(s"Boss has ${b.hp} hp")
+        }
+
+        val prePlayer = s.currentAttacker match {
+          case _: Player if hardMode =>
+            if (debug) println(s"Player is hit by 1 dmg and has ${p.hp - 1} hp")
+            Player(p.armor, p.spells, p.mana, p.hp - 1)
+          case _ => p
+        }
+
+        if (prePlayer.hp <= 0) {
+          if (debug) println("Player has died")
+          return (b, cost)
+        }
 
         // for spells that have ended, do their end-effect
-        val (aPlayer, aBoss) = s.activeSpells.filter(_._2 == 0).foldLeft((p, b)) { (carry, spell) =>
-//          println(s"Spell ${spell._1} has ended")
+        val (aPlayer, aBoss) = s.activeSpells.filter(_._2 == 0).foldLeft((prePlayer, b)) { (carry, spell) =>
+          if (debug) println(s"Spell ${spell._1} has ended")
           spell._1.asInstanceOf[Spell with Turns].atEnd(carry._1, carry._2)
         }
 
@@ -122,14 +153,17 @@ object Day22 {
             newActiveSpells.foldLeft((aPlayer, aBoss)) { (carry, activeSpell) =>
               activeSpell._1 match {
                 case spell: Spell with EachTurn =>
-//                  println(s"Spell $spell ticks with ${activeSpell._2} turns left")
+                  if (debug) println(s"Spell $spell ticks with ${activeSpell._2} turns left")
                   spell.eachTurn(carry._1, carry._2)
                 case _ => carry
               }
             }
         }
 
-        if (newBoss.hp <= 0) return (newPlayer, cost)
+        if (newBoss.hp <= 0) {
+          if (debug) println("Boss has died after applying tick effects.")
+          return (newPlayer, cost)
+        }
 
         // get the final player, boss and the state after applying the spell for this turn
         val (finalPlayer, finalBoss, newState, newCost) = s.currentAttacker match {
@@ -138,13 +172,13 @@ object Day22 {
             val (nextSpell, spellsLeft) = newPlayer.spells.dequeue
 
             val newState = nextSpell match {
-              case spell: Spell with Turns => new State(b, newActiveSpells + (spell -> spell.turns))
-              case _ => new State(b, newActiveSpells)
+              case spell: Spell with Turns => State(b, newActiveSpells + (spell -> spell.turns))
+              case _ => State(b, newActiveSpells)
             }
 
-//            println(s"Player casts $nextSpell")
+            if (debug) println(s"Player casts $nextSpell")
             val (afterSpellPlayer, finalBoss) = nextSpell.fire(newPlayer, newBoss)
-            val finalPlayer = new Player(afterSpellPlayer.armor, spellsLeft, afterSpellPlayer.mana, afterSpellPlayer.hp)
+            val finalPlayer = Player(afterSpellPlayer.armor, spellsLeft, afterSpellPlayer.mana, afterSpellPlayer.hp)
 
             (finalPlayer, finalBoss, newState, cost + nextSpell.cost)
 
@@ -152,45 +186,39 @@ object Day22 {
           case _: Boss =>
             val damage = math.max(newBoss.damage - newPlayer.armor, 1)
             val hp = newPlayer.hp - damage
-            val finalPlayer = new Player(newPlayer.armor, newPlayer.spells, newPlayer.mana, hp)
-            val finalState = new State(finalPlayer, newActiveSpells)
+            val finalPlayer = Player(newPlayer.armor, newPlayer.spells, newPlayer.mana, hp)
+            val finalState = State(finalPlayer, newActiveSpells)
 
-//            println(s"Boss does $damage damage")
+            if (debug) println(s"Boss does $damage damage")
 
             (finalPlayer, newBoss, finalState, cost)
         }
 
-//        println
+        if (debug) println
         go(finalPlayer, finalBoss, newState, turns + 1, newCost)
       }
     }
 
-    val state = new State(p)
+    val state = State(p)
     go(p, b, state, 0, 0)
   }
 
-  class State(val currentAttacker: Char, val activeSpells: Map[Spell, Int] = Map.empty) {
+  case class State(currentAttacker: Char, activeSpells: Map[Spell, Int] = Map.empty) {
     override def toString = s"State(currentAttacker=$currentAttacker, activeSpells=$activeSpells)"
   }
 
   trait Char
 
-  class Boss(val hp: Int = bossStartHp) extends Char {
-    val damage = bossDamage
-
+  case class Boss(hp: Int = bossStartHp, damage: Int = bossDamage) extends Char {
     override def toString = s"Boss(damage=$damage, hp=$hp)"
   }
 
-  class Player(val armor: Int,
-               val spells: Queue[Spell] = Queue.empty,
-               val mana: Int = 500,
-               val hp: Int = 50) extends Char {
-
+  case class Player(armor: Int, spells: Queue[Spell] = Queue.empty, mana: Int = 500, hp: Int = 50) extends Char {
     override def toString = s"Player(armor=$armor, spells=$spells, mana=$mana, hp=$hp)"
   }
 
   trait Turns {
-    def turns: Int
+    val turns: Int
 
     def atEnd(p: Player, b: Boss): (Player, Boss) = (p, b)
   }
@@ -201,99 +229,41 @@ object Day22 {
 
   abstract class Spell(val cost: Int) {
     def fire(p: Player, b: Boss): (Player, Boss) = {
-//      println
-      (new Player(p.armor, p.spells, p.mana - this.cost, p.hp), b)
+      (Player(p.armor, p.spells, p.mana - this.cost, p.hp), b)
     }
   }
 
-  class MagicMissile extends Spell(53) {
-    val damage = 4
-
+  case class MagicMissile(damage: Int = 4) extends Spell(53) {
     override def fire(p: Player, b: Boss): (Player, Boss) = {
-//      println(s" dealing $damage damage")
-      (new Player(p.armor, p.spells, p.mana - this.cost, p.hp), new Boss(b.hp - this.damage))
-    }
-
-    override def toString = s"MagicMissile"
-
-    def canEqual(other: Any): Boolean = other.isInstanceOf[MagicMissile]
-
-    override def equals(other: Any): Boolean = other match {
-      case that: MagicMissile => true
-      case _ => false
+      (Player(p.armor, p.spells, p.mana - this.cost, p.hp), Boss(b.hp - this.damage))
     }
   }
 
-  class Drain extends Spell(73) {
-    val heal = 2
-    val damage = 2
-
+  case class Drain(heal: Int = 2, damage: Int = 2) extends Spell(73) {
     override def fire(p: Player, b: Boss): (Player, Boss) = {
-//      println(s" dealing $damage damage; and healing self $heal")
-      (new Player(p.armor, p.spells, p.mana - this.cost, p.hp + this.heal), new Boss(b.hp - this.damage))
-    }
-
-    override def toString = s"Drain"
-
-    override def equals(other: Any): Boolean = other match {
-      case that: Drain => true
-      case _ => false
+      (Player(p.armor, p.spells, p.mana - this.cost, p.hp + this.heal), Boss(b.hp - this.damage))
     }
   }
 
-  class Shield extends Spell(113) with Turns {
-    val armor = 7
-
+  case class Shield(armor: Int = 7, turns: Int = 6) extends Spell(113) with Turns {
     override def fire(p: Player, b: Boss): (Player, Boss) = {
-//      println(s" increasing armor by $armor damage")
-      (new Player(p.armor + this.armor, p.spells, p.mana - this.cost, p.hp), b)
+      (Player(p.armor + this.armor, p.spells, p.mana - this.cost, p.hp), b)
     }
 
     override def atEnd(p: Player, b: Boss): (Player, Boss) = {
-      (new Player(p.armor - this.armor, p.spells, p.mana, p.hp), b)
-    }
-
-    override def turns: Int = 6
-
-    override def toString = s"Shield"
-
-    override def equals(other: Any): Boolean = other match {
-      case that: Shield => true
-      case _ => false
+      (Player(p.armor - this.armor, p.spells, p.mana, p.hp), b)
     }
   }
 
-  class Poison extends Spell(173) with Turns with EachTurn {
-    val damage = 3
-
+  case class Poison(damage: Int = 3, turns: Int = 6) extends Spell(173) with Turns with EachTurn {
     override def eachTurn(p: Player, b: Boss): (Player, Boss) = {
-      (new Player(p.armor, p.spells, p.mana, p.hp), new Boss(b.hp - this.damage))
-    }
-
-    override def turns: Int = 6
-
-    override def toString = s"Poison"
-
-    override def equals(other: Any): Boolean = other match {
-      case that: Poison => true
-      case _ => false
+      (Player(p.armor, p.spells, p.mana, p.hp), Boss(b.hp - this.damage))
     }
   }
 
-  class Recharge extends Spell(229) with Turns with EachTurn {
-    val mana = 101
-
+  case class Recharge(mana: Int = 101, turns: Int = 5) extends Spell(229) with Turns with EachTurn {
     override def eachTurn(p: Player, b: Boss): (Player, Boss) = {
-      (new Player(p.armor, p.spells, p.mana + this.mana, p.hp), b)
-    }
-
-    override def turns: Int = 5
-
-    override def toString = s"Recharge"
-
-    override def equals(other: Any): Boolean = other match {
-      case that: Recharge => true
-      case _ => false
+      (Player(p.armor, p.spells, p.mana + this.mana, p.hp), b)
     }
   }
 
