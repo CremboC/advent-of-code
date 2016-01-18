@@ -32,22 +32,23 @@ object Day22 {
 //    if (won._1) {
 //      println(won)
 //    }
+    simulate(Player(0), Boss())
 
-    var finished = false
-    var combos = 0
-    while (!finished) {
-      val won = try {
-        playerWon(Player(0, generateSpellSet()))
-      } catch {
-        case _: Throwable => (false, -2)
-      }
-      combos += 1
-      if (debug) println(combos)
-      if (won._1) {
-        println(won)
-        finished = true
-      }
-    }
+    // var finished = false
+    // var combos = 0
+    // while (!finished) {
+    //   val won = try {
+    //     playerWon(Player(0, generateSpellSet()))
+    //   } catch {
+    //     case _: Throwable => (false, -2)
+    //   }
+    //   combos += 1
+    //   if (debug) println(combos)
+    //   if (won._1) {
+    //     println(won)
+    //     finished = true
+    //   }
+    // }
   }
 
   def lastThreeAreCleanFrom(s: Spell, spells: Vector[Spell]): Boolean = {
@@ -97,19 +98,22 @@ object Day22 {
   }
 
   def simulate(p: Player, b: Boss = new Boss): (Char, Int) = {
-    @tailrec
-    def go(p: Player, b: Boss, s: State, turns: Int, cost: Int): (Char, Int) = {
+    // @tailrec
+    def run(p: Player, b: Boss, s: State, turns: Int, cost: Int): Game = {
       if (b.hp <= 0) {
         if (debug) println("Boss has died")
-        (p, cost)
+        Game(p, b, s, turns, cost)
+        // (p, cost)
       }
       else if (p.hp <= 0) {
         if (debug) println("Player has died")
-        (b, cost)
+        Game(p, b, s, turns, cost)
+        // (b, cost)
       }
       else if (p.mana < 0) {
         if (debug) println("Player ran out of mana")
-        (b, cost)
+        Game(p, b, s, turns, cost)
+        // (b, cost)
       }
       else {
         if (debug) {
@@ -128,7 +132,8 @@ object Day22 {
 
         if (prePlayer.hp <= 0) {
           if (debug) println("Player has died")
-          return (b, cost)
+          return Game(p, b, s, turns, cost)
+          // (b, cost)
         }
 
         // for spells that have ended, do their end-effect
@@ -138,7 +143,7 @@ object Day22 {
         }
 
         // reduce numbers of turns left for active spells
-        val newActiveSpells = s.activeSpells.foldLeft(Map.empty[Spell, Int]) { (carry, ac) =>
+        val activeSpells = s.activeSpells.foldLeft(Map.empty[Spell, Int]) { (carry, ac) =>
           ac match {
             case (spell, turnsLeft) if turnsLeft == 0 => carry
             case (spell, turnsLeft) => carry + (spell -> (turnsLeft - 1))
@@ -146,11 +151,11 @@ object Day22 {
         }
 
         // calculate player and boss after applying effects of turn-based spells
-        val (newPlayer, newBoss) = newActiveSpells.isEmpty match {
+        val (newPlayer, newBoss) = activeSpells.isEmpty match {
           case true => (aPlayer, aBoss)
           case false =>
             // only apply spells that have a "each turn" effect
-            newActiveSpells.foldLeft((aPlayer, aBoss)) { (carry, activeSpell) =>
+            activeSpells.foldLeft((aPlayer, aBoss)) { (carry, activeSpell) =>
               activeSpell._1 match {
                 case spell: Spell with EachTurn =>
                   if (debug) println(s"Spell $spell ticks with ${activeSpell._2} turns left")
@@ -162,7 +167,7 @@ object Day22 {
 
         if (newBoss.hp <= 0) {
           if (debug) println("Boss has died after applying tick effects.")
-          return (newPlayer, cost)
+          return Game(newPlayer, b, s, turns, cost)
         }
 
         // get the final player, boss and the state after applying the spell for this turn
@@ -172,8 +177,8 @@ object Day22 {
             val (nextSpell, spellsLeft) = newPlayer.spells.dequeue
 
             val newState = nextSpell match {
-              case spell: Spell with Turns => State(b, newActiveSpells + (spell -> spell.turns))
-              case _ => State(b, newActiveSpells)
+              case spell: Spell with Turns => State(b, activeSpells + (spell -> spell.turns))
+              case _ => State(b, activeSpells)
             }
 
             if (debug) println(s"Player casts $nextSpell")
@@ -185,9 +190,8 @@ object Day22 {
           // else if this is the boss's turn
           case _: Boss =>
             val damage = math.max(newBoss.damage - newPlayer.armor, 1)
-            val hp = newPlayer.hp - damage
-            val finalPlayer = Player(newPlayer.armor, newPlayer.spells, newPlayer.mana, hp)
-            val finalState = State(finalPlayer, newActiveSpells)
+            val finalPlayer = Player(newPlayer.armor, newPlayer.spells, newPlayer.mana, newPlayer.hp - damage)
+            val finalState = State(finalPlayer, activeSpells)
 
             if (debug) println(s"Boss does $damage damage")
 
@@ -195,12 +199,38 @@ object Day22 {
         }
 
         if (debug) println
-        go(finalPlayer, finalBoss, newState, turns + 1, newCost)
+
+        Game(finalPlayer, finalBoss, newState, turns + 1, newCost)
+        // go(finalPlayer, finalBoss, newState, turns + 1, newCost)
       }
     }
 
     val state = State(p)
-    go(p, b, state, 0, 0)
+
+    // run simulation with all spells
+    // choose best simulation
+    // select it as best combo
+    // repeat
+
+    def sim(g: Game): Game = {
+      val postSpell = availableSpells.map { spell => 
+        run(Player(g.p.armor, Queue(spell), g.p.mana, g.p.hp), g.boss, g.state, g.turns, g.cost)
+      }
+
+      postSpell.maxBy(_.p.hp)
+    }
+
+
+    println("hi")
+
+    (Player(0), 0)
+
+
+    // run(p, b, state, 0, 0)
+  }
+
+  case class Game(player: Player, boss: Boss, state: State, turns: Int, Cost: Int) {
+
   }
 
   case class State(currentAttacker: Char, activeSpells: Map[Spell, Int] = Map.empty) {
@@ -213,7 +243,7 @@ object Day22 {
     override def toString = s"Boss(damage=$damage, hp=$hp)"
   }
 
-  case class Player(armor: Int, spells: Queue[Spell] = Queue.empty, mana: Int = 500, hp: Int = 50) extends Char {
+  case class Player(armor: Int = 0, spells: Queue[Spell] = Queue.empty, mana: Int = 500, hp: Int = 50) extends Char {
     override def toString = s"Player(armor=$armor, spells=$spells, mana=$mana, hp=$hp)"
   }
 
